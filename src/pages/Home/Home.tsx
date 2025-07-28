@@ -7,14 +7,18 @@ import useDecimals from "src/hooks/useDecimals";
 import { toEth } from "src/utils/common";
 import { dismissNotifyAll, notifyError, notifyLoading, notifySuccess } from "src/api/notifications";
 import { Button } from "src/components/ui/button";
+import { useContext } from "react";
+import { WalletContext } from "src/context/WalletProvider";
 
 interface IProps {}
 
 const Home: React.FC<IProps> = () => {
   const { balance, displayAccount, currentAddress } = useWallet();
   const { balances, isLoading, isFetching } = useBalances();
-  const { decimals } = useDecimals();
+  const walletContext = useContext(WalletContext);
 
+
+  console.log("xxxxxxxxxxxxxxxxxxxxx", walletContext)
   return (
     <Container maxWidth="xl">
       <h1>Root Page</h1>
