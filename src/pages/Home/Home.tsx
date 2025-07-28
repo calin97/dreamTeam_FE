@@ -41,6 +41,7 @@ const Home: React.FC<IProps> = () => {
       {isFetching && <Skeleton height={200} />}
 
       <Button>cevaaaaaaaaaaaaa</Button>
+      <div className="bg-red-500 text-white p-4">Tailwind is working</div>
     </Container>
   );
 };
