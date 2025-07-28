@@ -1,11 +1,12 @@
 import React from "react";
-import { Container, Typography, ListItemText, ListItem, Button, Skeleton } from "@mui/material";
+import { Container, Typography, ListItemText, ListItem, Skeleton } from "@mui/material";
 import { Link } from "react-router-dom";
 import useWallet from "src/hooks/useWallet";
 import useBalances from "src/hooks/useBalances";
 import useDecimals from "src/hooks/useDecimals";
 import { toEth } from "src/utils/common";
 import { dismissNotifyAll, notifyError, notifyLoading, notifySuccess } from "src/api/notifications";
+import { Button } from "src/components/ui/button";
 
 interface IProps {}
 
@@ -38,46 +39,8 @@ const Home: React.FC<IProps> = () => {
           </ListItem>
         ))}
       {isFetching && <Skeleton height={200} />}
-      <Typography variant="h5">Notifications</Typography>
-      <Button
-        variant="outlined"
-        sx={{ mr: 2 }}
-        onClick={() => {
-          notifySuccess("Approving Token!", "Please wait...");
-        }}
-      >
-        success
-      </Button>
 
-      <Button
-        variant="outlined"
-        sx={{ mr: 2 }}
-        onClick={() => {
-          notifyError("Error!", "Something went wrong...");
-        }}
-      >
-        error
-      </Button>
-
-      <Button
-        variant="outlined"
-        sx={{ mr: 2 }}
-        onClick={() => {
-          notifyLoading("Approving!", "Please wait...");
-        }}
-      >
-        loading
-      </Button>
-
-      <Button
-        variant="outlined"
-        sx={{ mr: 2 }}
-        onClick={() => {
-          dismissNotifyAll();
-        }}
-      >
-        dismiss
-      </Button>
+      <Button>cevaaaaaaaaaaaaa</Button>
     </Container>
   );
 };
