@@ -4767,6 +4767,7 @@ __metadata:
     react-redux: "npm:^8.0.5"
     react-resizable-panels: "npm:^3.0.3"
     react-router-dom: "npm:^6.11.2"
+    react-toastify: "npm:^11.0.5"
     reapop: "npm:^4.2.1"
     redux-persist: "npm:^6.0.0"
     tailwind-merge: "npm:^3.3.1"
@@ -7833,6 +7834,18 @@ __metadata:
     "@types/react":
       optional: true
   checksum: 62498094ff3877a37f351b29e6cad9e38b2eb1ac3c0cb27ebf80aee96554f80b35e17bdb552bcd7ac8b7cb9904fea93ea5668f2057c73d38f90b5d46bb9b27ab
+  languageName: node
+  linkType: hard
+
+"react-toastify@npm:^11.0.5":
+  version: 11.0.5
+  resolution: "react-toastify@npm:11.0.5"
+  dependencies:
+    clsx: "npm:^2.1.1"
+  peerDependencies:
+    react: ^18 || ^19
+    react-dom: ^18 || ^19
+  checksum: c27197c2bce4251ad3a35d5686cf0284d9da8b533c0a76ba468ce0772e8a0b38373436d47e5d623382ea1ca1cef0c22b83a585792e68df61bbb888a385c1cf9c
   languageName: node
   linkType: hard
 

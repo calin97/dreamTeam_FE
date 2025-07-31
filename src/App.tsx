@@ -9,6 +9,8 @@ import { WagmiConfig } from "wagmi";
 import { chains, wagmiConfig } from "./config/walletConfig";
 import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import WalletProvider from "./context/WalletProvider";
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from 'react-toastify';
 // import viteLogo from "/vite.svg";
 
 function App() {
@@ -22,6 +24,7 @@ function App() {
               <RainbowKitProvider chains={chains}>
                 <WalletProvider>
                   <Body />
+                  <ToastContainer position="bottom-right" />
                 </WalletProvider>
               </RainbowKitProvider>
             </WagmiConfig>

@@ -1,51 +1,24 @@
-import React from "react";
-import { Container, Typography, ListItemText, ListItem, Skeleton } from "@mui/material";
-import { Link } from "react-router-dom";
-import useWallet from "src/hooks/useWallet";
-import useBalances from "src/hooks/useBalances";
-import useDecimals from "src/hooks/useDecimals";
-import { toEth } from "src/utils/common";
-import { dismissNotifyAll, notifyError, notifyLoading, notifySuccess } from "src/api/notifications";
+import React, { useContext } from "react";
+import { Container } from "@mui/material";
 import { Button } from "src/components/ui/button";
-import { useContext } from "react";
+import CreatePropertyForm from "src/components/CreatePropertyForm";
+import PropertyList from "src/components/PropertyList";
 import { WalletContext } from "src/context/WalletProvider";
 
-interface IProps {}
+const Home: React.FC = () => {
+  const { connectWallet, currentAddress, displayAccount } = useContext(WalletContext);
 
-const Home: React.FC<IProps> = () => {
-  const { balance, displayAccount, currentAddress } = useWallet();
-  const { balances, isLoading, isFetching } = useBalances();
-  const walletContext = useContext(WalletContext);
-
-
-  console.log("xxxxxxxxxxxxxxxxxxxxx", walletContext)
   return (
-    <Container maxWidth="xl">
-      <h1>Root Page</h1>
-      <Typography>
-        <b>Balance:</b> {balance?.formatted}
-      </Typography>
-      <Typography>
-        <b>Current Wallet:</b> {currentAddress}
-      </Typography>
-      <Typography>
-        <b>Current Wallet:</b> {displayAccount}
-      </Typography>
-      <Link to="/test">Test</Link>
-      <Typography variant="h5">Balances:-</Typography>
-      {balances &&
-        !isLoading &&
-        Object.entries(balances).map(([address, balance]) => (
-          <ListItem key={address}>
-            <ListItemText>
-              <b>Address:</b> {address} <b>Balance:</b> {toEth(balance, decimals && decimals[address])}
-            </ListItemText>
-          </ListItem>
-        ))}
-      {isFetching && <Skeleton height={200} />}
+    <Container maxWidth="xl" className="py-6">
+      <div className="mb-4 flex items-center gap-3">
+        <Button onClick={connectWallet}>
+          {currentAddress ? `Connected: ${displayAccount}` : "Connect Wallet"}
+        </Button>
+        <div className="bg-red-500 text-white px-3 py-2 rounded">Tailwind is working</div>
+      </div>
 
-      <Button>cevaaaaaaaaaaaaa</Button>
-      <div className="bg-red-500 text-white p-4">Tailwind is working</div>
+      <CreatePropertyForm />
+      <PropertyList />
     </Container>
   );
 };
