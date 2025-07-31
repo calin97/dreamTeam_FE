@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Container, Typography } from "@mui/material";
 import { Button } from "src/components/ui/button";
@@ -6,8 +6,12 @@ import { WalletContext } from "src/context/WalletProvider";
 import frontendLibProperty from "src/assets/libs/frontendLibProperty";
 import { toast } from "react-toastify";
 import { ARB_CHAIN_ID } from "src/config/constants";
-
-const USDT_DECIMALS = 6;
+import {
+  publishPropertyOnOcean,
+  isPropertyPublishedOnOcean,
+  getOceanAssetData,
+  type PropertyNFTData,
+} from "src/services/oceanProtocol";
 
 export default function PropertyPage() {
   const { address: addrParam } = useParams<{ address: `0x${string}` }>();
@@ -28,8 +32,26 @@ export default function PropertyPage() {
   // New state for distribute loading
   const [distLoading, setDistLoading] = useState(false);
 
+  // Ocean Protocol publishing state
+  const [oceanPublishing, setOceanPublishing] = useState(false);
+  const [oceanPublished, setOceanPublished] = useState(false);
+  const [oceanNftAddress, setOceanNftAddress] = useState<string | null>(null);
+
   const lib = useMemo(() => frontendLibProperty(), []);
   const propertyAddress = addrParam as `0x${string}`;
+
+  // Check if property is already published on Ocean Protocol
+  useEffect(() => {
+    if (propertyAddress) {
+      const isPublished = isPropertyPublishedOnOcean(propertyAddress);
+      setOceanPublished(isPublished);
+
+      if (isPublished) {
+        const assetData = getOceanAssetData(propertyAddress);
+        setOceanNftAddress(assetData?.nftAddress || null);
+      }
+    }
+  }, [propertyAddress]);
   const usdtAddress = summary?.usdt as `0x${string}` | undefined;
 
   async function load() {
@@ -150,6 +172,59 @@ export default function PropertyPage() {
     }
   }
 
+  async function doPublishOnOcean() {
+    try {
+      if (!signer) {
+        await connectWallet();
+        if (!signer) return;
+      }
+
+      if (!summary) {
+        toast.error("Property data not loaded");
+        return;
+      }
+
+      if (!summary.finalized) {
+        toast.error("Property must be finalized to publish on Ocean Protocol");
+        return;
+      }
+
+      setOceanPublishing(true);
+
+      // Prepare property data for Ocean Protocol
+      const propertyData: PropertyNFTData = {
+        name: `Property at ${summary.address.slice(0, 10)}...`,
+        description: `A finalized real estate property investment on BrickSafe. This NFT represents ownership data and investment information for the property at address ${summary.address}. Total investment raised: ${summary.raisedFormatted} USDT from ${summary.totalShares} share tokens.`,
+        propertyAddress: summary.address,
+        seller: summary.seller,
+        price: summary.priceFormatted,
+        raised: summary.raisedFormatted,
+        totalShares: summary.totalShares,
+        propertyURI: summary.propertyURI,
+        metadata: {
+          platform: "BrickSafe",
+          finalized: summary.finalized,
+          pendingIncome: summary.pendingIncomeFormatted,
+          usdtAddress: summary.usdt,
+          chainId: chainId,
+          publishedAt: new Date().toISOString(),
+        },
+      };
+
+      const result = await publishPropertyOnOcean(signer, propertyData);
+
+      setOceanNftAddress(result.nftAddress);
+      setOceanPublished(true);
+
+      toast.success(`Property published on Ocean Protocol! NFT: ${result.nftAddress.slice(0, 10)}...`);
+    } catch (e: any) {
+      console.error("Ocean Protocol publish error:", e);
+      toast.error(e?.message ?? "Failed to publish on Ocean Protocol");
+    } finally {
+      setOceanPublishing(false);
+    }
+  }
+
   return (
     <Container maxWidth="lg" className="py-6">
       <div className="flex items-center justify-between mb-4">
@@ -233,6 +308,53 @@ export default function PropertyPage() {
               <Button onClick={doDistribute} disabled={distLoading || summary.pendingIncomeFormatted === "0.0"}>
                 {distLoading ? "Distributing…" : "Distribute to shareholders"}
               </Button>
+            </div>
+          )}
+
+          {/* OCEAN PROTOCOL PUBLISHING — only when finalized */}
+          {summary?.finalized && (
+            <div className="mt-4 border rounded-2xl p-4 bg-gradient-to-r from-blue-50 to-cyan-50">
+              <div className="font-medium mb-2 flex items-center gap-2">🌊 Ocean Protocol Publishing</div>
+              <div className="text-sm text-gray-600 mb-3">
+                Publish this finalized property as an NFT on Ocean Protocol to enable data sharing and monetization.
+              </div>
+
+              {!oceanPublished ? (
+                <Button
+                  onClick={doPublishOnOcean}
+                  disabled={oceanPublishing}
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+                >
+                  {oceanPublishing ? "Publishing on Ocean..." : "🚀 Publish on Ocean Protocol"}
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-green-600">
+                    ✅ Successfully published on Ocean Protocol!
+                  </div>
+                  {oceanNftAddress && (
+                    <div className="text-sm">
+                      <span className="text-gray-600">NFT Address: </span>
+                      <span className="font-mono text-blue-600 break-all">{oceanNftAddress}</span>
+                    </div>
+                  )}
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      oceanNftAddress &&
+                      window.open(`https://market.oceanprotocol.com/asset/${oceanNftAddress}`, "_blank")
+                    }
+                    disabled={!oceanNftAddress}
+                    className="text-sm"
+                  >
+                    View on Ocean Market
+                  </Button>
+                </div>
+              )}
+
+              <div className="text-xs text-gray-500 mt-2">
+                Ocean Protocol enables secure data sharing and monetization through blockchain technology.
+              </div>
             </div>
           )}
 
