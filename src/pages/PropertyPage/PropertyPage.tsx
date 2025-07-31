@@ -4,7 +4,7 @@ import { Container, Typography } from "@mui/material";
 import { Button } from "src/components/ui/button";
 import { WalletContext } from "src/context/WalletProvider";
 import frontendLibProperty from "src/assets/libs/frontendLibProperty";
-import { createOceanProof } from "src/assets/libs/oceanProof"; // 👈 import ocean helper
+import { createOceanProof } from "src/assets/libs/oceanProof";
 import { toast } from "react-toastify";
 
 const USDT_DECIMALS = 6;
@@ -13,7 +13,7 @@ export default function PropertyPage() {
   const { address: addrParam } = useParams<{ address: `0x${string}` }>();
   const navigate = useNavigate();
   const { signer, connectWallet, currentAddress, chainId, switchNetworkAsync } =
-    useContext(WalletContext); // 👈 avem chainId & switchNetworkAsync
+    useContext(WalletContext);
 
   const [summary, setSummary] = useState<any>(null);
   const [shares, setShares] = useState<any[]>([]);
@@ -26,10 +26,14 @@ export default function PropertyPage() {
   const [isSeller, setIsSeller] = useState(false);
   const [isShareholder, setIsShareholder] = useState(false);
 
-  // 👇 pentru Ocean
+  // Ocean
   const [oceanLoading, setOceanLoading] = useState(false);
   const OCEAN_CHAIN_ID = Number(import.meta.env.REACT_APP_OCEAN_CHAIN_ID);
-  const ARB_CHAIN_ID = Number(import.meta.env.REACT_APP_ARB_CHAIN_ID) || chainId;
+  const ARB_CHAIN_ID =
+    Number(import.meta.env.REACT_APP_ARB_CHAIN_ID) || chainId;
+
+  // New state for distribute loading
+  const [distLoading, setDistLoading] = useState(false);
 
   const lib = useMemo(() => frontendLibProperty(), []);
   const propertyAddress = addrParam as `0x${string}`;
@@ -65,9 +69,39 @@ export default function PropertyPage() {
 
   useEffect(() => {
     load();
+
+    // subscribe to income events to auto-refresh
+    if (signer?.provider && propertyAddress) {
+      const offDep = lib.onIncomeDeposited(
+        signer.provider,
+        propertyAddress,
+        () => load()
+      );
+      const offDist = lib.onIncomeDistributed(
+        signer.provider,
+        propertyAddress,
+        () => load()
+      );
+      return () => {
+        try {
+          offDep?.();
+          offDist?.();
+        } catch {}
+      };
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyAddress, signer?.provider, currentAddress]);
 
+  // ---------- Chain helper ----------
+  async function ensureChain(targetId?: number | null) {
+    if (!targetId) return true;
+    if (!switchNetworkAsync) return true;
+    if (chainId === targetId) return true;
+    await switchNetworkAsync(targetId);
+    return true;
+  }
+
+  // ---------- Actions ----------
   async function doContribute() {
     try {
       if (!signer) {
@@ -75,6 +109,8 @@ export default function PropertyPage() {
         if (!signer) return;
       }
       if (!usdtAddress) return;
+
+      await ensureChain(ARB_CHAIN_ID);
       await lib.approveAndContribute(
         signer,
         propertyAddress,
@@ -95,12 +131,16 @@ export default function PropertyPage() {
         if (!signer) return;
       }
       if (!usdtAddress) return;
+
+      await ensureChain(ARB_CHAIN_ID);
+
+      const autoDistribute = !!isShareholder; // only if caller is a shareholder
       await lib.depositIncome(
         signer,
         propertyAddress,
         usdtAddress,
         Number(rentAmount),
-        true
+        autoDistribute
       );
       await load();
     } catch (e: any) {
@@ -109,9 +149,28 @@ export default function PropertyPage() {
     }
   }
 
+  async function doDistribute() {
+    try {
+      if (!signer) {
+        await connectWallet();
+        if (!signer) return;
+      }
+      await ensureChain(ARB_CHAIN_ID);
+      setDistLoading(true);
+      await lib.distributeIncome(signer, propertyAddress);
+      await load();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message ?? "Distribute failed");
+    } finally {
+      setDistLoading(false);
+    }
+  }
+
   async function doSetDisplayName(tokenId: number) {
     try {
       if (!signer || !displayName) return;
+      await ensureChain(ARB_CHAIN_ID);
       await lib.setDisplayName(signer, propertyAddress, tokenId, displayName);
       setDisplayName("");
       await load();
@@ -122,13 +181,6 @@ export default function PropertyPage() {
   }
 
   // ---------- Ocean proof ----------
-  async function ensureChain(targetId: number) {
-    if (!switchNetworkAsync) return true;
-    if (chainId === targetId) return true;
-    await switchNetworkAsync(targetId);
-    return true;
-  }
-
   async function doCreateOceanProof() {
     try {
       if (!signer) {
@@ -146,10 +198,10 @@ export default function PropertyPage() {
       setOceanLoading(true);
       const prev = chainId;
 
-      // 1) Switch la rețeaua Ocean (ex. Polygon Amoy 80002)
+      // 1) Switch to Ocean chain
       await ensureChain(OCEAN_CHAIN_ID);
 
-      // 2) Creează DataNFT + DT + metadata (dovadă)
+      // 2) Create proof on Ocean
       const proof = {
         propertyAddress,
         contributor: currentAddress,
@@ -162,12 +214,11 @@ export default function PropertyPage() {
         proofJson: proof,
       });
 
-      // 3) Înapoi pe Arbitrum
+      // 3) Back to Arbitrum
       await ensureChain(ARB_CHAIN_ID || prev!);
 
-      // 4) Link DID + DataNFT în contractul BrickSafeProperty
+      // 4) Link in property
       await lib.linkOceanAsset(signer, propertyAddress, did, dataNftAddress);
-
       toast.success("Ocean proof creat & link-uit cu succes");
       await load();
     } catch (e: any) {
@@ -177,6 +228,9 @@ export default function PropertyPage() {
       setOceanLoading(false);
     }
   }
+
+
+  
 
   return (
     <Container maxWidth="lg" className="py-6">
@@ -204,7 +258,7 @@ export default function PropertyPage() {
                 Me isSeller: {String(isSeller)} · isShareholder: {String(isShareholder)}
               </div>
 
-              {/* Create Ocean Proof – doar shareholder și dacă nu e deja setat DID */}
+              {/* Create Ocean Proof – only shareholder and if DID not set */}
               {isShareholder && !summary?.oceanDid && (
                 <div className="mt-3">
                   <Button onClick={doCreateOceanProof} disabled={oceanLoading}>
@@ -221,7 +275,7 @@ export default function PropertyPage() {
             </div>
           </div>
 
-          {/* CONTRIBUTE — ascuns pentru seller sau dacă deja e finalized */}
+          {/* CONTRIBUTE — hidden for seller or if already finalized */}
           {!isSeller && !summary.finalized && (
             <div className="mt-6 border rounded-2xl p-4">
               <div className="font-medium mb-2">Contribute</div>
@@ -238,10 +292,13 @@ export default function PropertyPage() {
             </div>
           )}
 
-          {/* RENT — ascuns pentru seller */}
+          {/* RENT — visible for everyone except seller */}
           {!isSeller && (
             <div className="mt-4 border rounded-2xl p-4">
               <div className="font-medium mb-2">Rent</div>
+              <div className="text-sm text-gray-600 mb-2">
+                Pending income in contract: <b>{summary.pendingIncomeFormatted}</b> mUSDT
+              </div>
               <div className="flex items-center gap-3">
                 <input
                   type="number"
@@ -254,8 +311,27 @@ export default function PropertyPage() {
                   Deposit & Distribute
                 </Button>
               </div>
+              {!isShareholder && (
+                <div className="text-xs text-amber-700 mt-2">
+                  You’re not a shareholder. Your deposit will be recorded as pending income.
+                  Any shareholder can later trigger the distribution.
+                </div>
+              )}
             </div>
           )}
+
+          {/* DISTRIBUTE — only for shareholders */}
+         {isShareholder && summary?.finalized && (
+  <div className="mt-4 border rounded-2xl p-4">
+    <div className="font-medium mb-2">Distribute income</div>
+    <div className="text-sm text-gray-600 mb-3">
+      Pending income: <b>{summary.pendingIncomeFormatted}</b> mUSDT
+    </div>
+    <Button onClick={doDistribute} disabled={distLoading || summary.pendingIncomeFormatted === "0.0"}>
+      {distLoading ? "Distributing…" : "Distribute to shareholders"}
+    </Button>
+  </div>
+)}
 
           {/* SHARES */}
           <div className="mt-6">
