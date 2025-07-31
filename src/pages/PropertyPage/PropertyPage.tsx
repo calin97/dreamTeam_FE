@@ -7,13 +7,14 @@ import frontendLibProperty from "src/assets/libs/frontendLibProperty";
 import { toast } from "react-toastify";
 import { ARB_CHAIN_ID } from "src/config/constants";
 import {
-  publishPropertyOnOcean,
-  isPropertyPublishedOnOcean,
-  getOceanAssetData,
-  getOceanMarketUrl,
-  verifyOceanNFT,
+  publishPropertyOnCrossChainOcean,
+  isPropertyPublishedCrossChain,
+  getCrossChainAssetData,
+  getCrossChainOceanMarketUrl,
+  verifyCrossChainNFT,
+  switchBackToOriginalNetwork,
   type PropertyNFTData,
-} from "src/services/oceanProtocol";
+} from "src/services/crossChainOceanProtocol";
 
 export default function PropertyPage() {
   const { address: addrParam } = useParams<{ address: `0x${string}` }>();
@@ -45,14 +46,14 @@ export default function PropertyPage() {
   const lib = useMemo(() => frontendLibProperty(), []);
   const propertyAddress = addrParam as `0x${string}`;
 
-  // Check if property is already published on Ocean Protocol
+  // Check if property is already published on Ocean Protocol (cross-chain)
   useEffect(() => {
     if (propertyAddress) {
-      const isPublished = isPropertyPublishedOnOcean(propertyAddress);
+      const isPublished = isPropertyPublishedCrossChain(propertyAddress);
       setOceanPublished(isPublished);
 
       if (isPublished) {
-        const assetData = getOceanAssetData(propertyAddress);
+        const assetData = getCrossChainAssetData(propertyAddress);
         setOceanNftAddress(assetData?.nftAddress || null);
         setOceanDatatokenAddress(assetData?.datatokenAddress || null);
       }
@@ -65,17 +66,17 @@ export default function PropertyPage() {
 
     try {
       setOceanVerifying(true);
-      const verified = await verifyOceanNFT(signer, propertyAddress);
+      const verified = await verifyCrossChainNFT(signer, propertyAddress);
       setOceanVerified(verified);
 
       if (verified) {
-        toast.success("Ocean Protocol NFT verified on-chain!");
+        toast.success("Cross-chain Ocean Protocol NFT verified on Sepolia!");
       } else {
-        toast.warning("Ocean Protocol NFT not found on-chain");
+        toast.warning("Ocean Protocol NFT not found on Sepolia");
       }
     } catch (error: any) {
-      console.error("Failed to verify Ocean NFT:", error);
-      toast.error("Failed to verify NFT on-chain");
+      console.error("Failed to verify cross-chain Ocean NFT:", error);
+      toast.error("Failed to verify NFT on Sepolia");
       setOceanVerified(false);
     } finally {
       setOceanVerifying(false);
@@ -240,14 +241,22 @@ export default function PropertyPage() {
         },
       };
 
-      const result = await publishPropertyOnOcean(signer, propertyData);
+      const result = await publishPropertyOnCrossChainOcean(signer, propertyData);
 
       setOceanNftAddress(result.nftAddress);
       setOceanDatatokenAddress(result.datatokenAddress);
       setOceanPublished(true);
       setOceanVerified(true); // Just published, so it's verified
 
-      toast.success(`Property published on Ocean Protocol! NFT: ${result.nftAddress.slice(0, 10)}...`);
+      toast.success(`Cross-chain Ocean Protocol NFT published! Address: ${result.nftAddress.slice(0, 10)}...`);
+
+      // Offer to switch back to original network
+      setTimeout(async () => {
+        const switchBack = window.confirm("Would you like to switch back to your original network?");
+        if (switchBack) {
+          await switchBackToOriginalNetwork();
+        }
+      }, 3000);
     } catch (e: any) {
       console.error("Ocean Protocol publish error:", e);
       toast.error(e?.message ?? "Failed to publish on Ocean Protocol");
@@ -360,21 +369,23 @@ export default function PropertyPage() {
                   disabled={oceanPublishing}
                   className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
                 >
-                  {oceanPublishing ? "Creating NFT on Ocean Protocol..." : "🚀 Publish Real NFT on Ocean Protocol"}
+                  {oceanPublishing
+                    ? "Publishing Cross-Chain to Sepolia..."
+                    : "🌉 Publish Cross-Chain to Ocean Protocol"}
                 </Button>
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-green-600">
-                    ✅ Successfully published on Ocean Protocol blockchain!
+                    ✅ Successfully published cross-chain to Ocean Protocol (Sepolia)!
                   </div>
 
                   {/* NFT Address */}
                   {oceanNftAddress && (
                     <div className="text-sm space-y-1">
                       <div>
-                        <span className="text-gray-600">NFT Contract: </span>
+                        <span className="text-gray-600">NFT Contract (Sepolia): </span>
                         <a
-                          href={`https://arbiscan.io/address/${oceanNftAddress}`}
+                          href={`https://sepolia.etherscan.io/address/${oceanNftAddress}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="font-mono text-blue-600 hover:text-blue-800 break-all underline"
@@ -388,9 +399,9 @@ export default function PropertyPage() {
                   {/* Datatoken Address */}
                   {oceanDatatokenAddress && (
                     <div className="text-sm">
-                      <span className="text-gray-600">Datatoken: </span>
+                      <span className="text-gray-600">Datatoken (Sepolia): </span>
                       <a
-                        href={`https://arbiscan.io/address/${oceanDatatokenAddress}`}
+                        href={`https://sepolia.etherscan.io/address/${oceanDatatokenAddress}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-mono text-blue-600 hover:text-blue-800 break-all underline"
@@ -409,7 +420,7 @@ export default function PropertyPage() {
                       disabled={oceanVerifying || !signer}
                       className="text-xs"
                     >
-                      {oceanVerifying ? "Verifying..." : "🔍 Verify On-Chain"}
+                      {oceanVerifying ? "Verifying..." : "🔍 Verify on Sepolia"}
                     </Button>
 
                     {oceanVerified === true && (
@@ -426,7 +437,7 @@ export default function PropertyPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const marketUrl = getOceanMarketUrl(propertyAddress);
+                        const marketUrl = getCrossChainOceanMarketUrl(propertyAddress);
                         if (marketUrl) window.open(marketUrl, "_blank");
                       }}
                       disabled={!oceanNftAddress}
@@ -439,10 +450,10 @@ export default function PropertyPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.open(`https://arbiscan.io/address/${oceanNftAddress}`, "_blank")}
+                        onClick={() => window.open(`https://sepolia.etherscan.io/address/${oceanNftAddress}`, "_blank")}
                         className="text-sm"
                       >
-                        📊 View on Arbiscan
+                        📊 View on Sepolia Etherscan
                       </Button>
                     )}
                   </div>
@@ -450,12 +461,13 @@ export default function PropertyPage() {
               )}
 
               <div className="text-xs text-gray-500 mt-3">
-                <div className="font-medium mb-1">Real Ocean Protocol Features:</div>
+                <div className="font-medium mb-1">Cross-Chain Ocean Protocol Features:</div>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>Blockchain-verified NFT ownership</li>
-                  <li>Datatoken-based access control</li>
-                  <li>Decentralized data monetization</li>
-                  <li>Integration with Ocean Market</li>
+                  <li>Property on Arbitrum → NFT on Sepolia</li>
+                  <li>Automatic network switching</li>
+                  <li>Real Ocean Protocol contracts</li>
+                  <li>Cross-chain data monetization</li>
+                  <li>Ocean Market integration</li>
                 </ul>
               </div>
             </div>
