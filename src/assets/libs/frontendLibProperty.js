@@ -73,6 +73,15 @@ export default function frontendLibProperty() {
     };
   }
 
+  // Check on-chain if the caller can distribute right now
+async function _canDistribute(signer, propertyAddress) {
+  const p = getBrickSafePropertyContract(signer, propertyAddress);
+  const me = await signer.getAddress();
+  const [finalized, bal] = await Promise.all([p.finalized(), p.balanceOf(me)]);
+  return Boolean(finalized && bal.gt(0));
+}
+
+
   /** Listă cu toate share‑urile (NFT‑uri): tokenId, owner, bps, tokenURI (+ decode optional) */
   async function getShares(signerOrProvider, propertyAddress) {
     const p = getBrickSafePropertyContract(signerOrProvider, propertyAddress);
@@ -149,12 +158,17 @@ export default function frontendLibProperty() {
     toast?.success?.("Contribution successful");
     return { txHash: tx.hash, receipt: rc };
   }
-
-  /** Approve mUSDT + depositIncome + (opțional) distribute imediat */
-  async function depositIncome(signer, propertyAddress, usdtAddress, rentWhole, autoDistribute = false) {
+ /** Approve mUSDT + depositIncome + (optional) distribute */
+  async function depositIncome(
+    signer,
+    propertyAddress,
+    usdtAddress,
+    rentWhole,
+    autoDistribute = false
+  ) {
     if (!signer) throw new Error("Signer required");
     const usdt = getMockUSDTContract(signer, usdtAddress);
-    const p    = getBrickSafePropertyContract(signer, propertyAddress);
+    const p = getBrickSafePropertyContract(signer, propertyAddress);
 
     const amt = toWei(rentWhole);
     const a = await usdt.approve(propertyAddress, amt);
@@ -165,22 +179,55 @@ export default function frontendLibProperty() {
     toast?.success?.("Income deposited");
 
     let dist = null;
+
     if (autoDistribute) {
-      dist = await p.distributeIncome();
-      await dist.wait();
-      toast?.success?.("Income distributed");
+      try {
+        const can = await _canDistribute(signer, propertyAddress);
+        if (can) {
+          // Optional pre-simulate to surface "nothing to distribute"
+          const me = await signer.getAddress();
+          await p.callStatic.distributeIncome({ from: me });
+
+          dist = await p.distributeIncome();
+          await dist.wait();
+          toast?.success?.("Income distributed");
+        } else {
+          toast?.info?.("Deposit recorded. A shareholder must trigger distribution.");
+        }
+      } catch (e) {
+        toast?.error?.(normalizeError(e, "Auto‑distribution failed"));
+      }
     }
 
     return { depositTx: d.hash, distributeTx: dist?.hash || null };
   }
 
-  /** Distribute pending income (permisiune: doar shareholder) */
+  /** Distribute pending income (must be a shareholder; property finalized) */
   async function distributeIncome(signer, propertyAddress) {
     const p = getBrickSafePropertyContract(signer, propertyAddress);
+
+    // Hard guard: avoid gas-estimation revert
+    const can = await _canDistribute(signer, propertyAddress);
+    if (!can) {
+      throw new Error("Only a shareholder can distribute, and the property must be finalized.");
+    }
+
+    // Pre-simulate for "nothing to distribute" (and other revert reasons)
+    const me = await signer.getAddress();
+    await p.callStatic.distributeIncome({ from: me });
+
     const tx = await p.distributeIncome();
     const rc = await tx.wait();
     toast?.success?.("Income distributed");
     return { txHash: tx.hash, receipt: rc };
+  }
+
+  // ...leave the rest of the file as-is (reads, other writes, events, safe wrapper, etc.)
+
+  function errorHandling(error) {
+    const msg = normalizeError(error, "Transaction failed");
+    toast?.error?.(msg);
+    throw error;
   }
 
   /** Setează display name pe un token (doar ownerul acelui token) */
