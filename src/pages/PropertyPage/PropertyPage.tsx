@@ -10,6 +10,8 @@ import {
   publishPropertyOnOcean,
   isPropertyPublishedOnOcean,
   getOceanAssetData,
+  getOceanMarketUrl,
+  verifyOceanNFT,
   type PropertyNFTData,
 } from "src/services/oceanProtocol";
 
@@ -36,6 +38,9 @@ export default function PropertyPage() {
   const [oceanPublishing, setOceanPublishing] = useState(false);
   const [oceanPublished, setOceanPublished] = useState(false);
   const [oceanNftAddress, setOceanNftAddress] = useState<string | null>(null);
+  const [oceanDatatokenAddress, setOceanDatatokenAddress] = useState<string | null>(null);
+  const [oceanVerifying, setOceanVerifying] = useState(false);
+  const [oceanVerified, setOceanVerified] = useState<boolean | null>(null);
 
   const lib = useMemo(() => frontendLibProperty(), []);
   const propertyAddress = addrParam as `0x${string}`;
@@ -49,9 +54,33 @@ export default function PropertyPage() {
       if (isPublished) {
         const assetData = getOceanAssetData(propertyAddress);
         setOceanNftAddress(assetData?.nftAddress || null);
+        setOceanDatatokenAddress(assetData?.datatokenAddress || null);
       }
     }
   }, [propertyAddress]);
+
+  // Verify Ocean Protocol NFT on chain
+  const handleVerifyOceanNFT = async () => {
+    if (!signer || !propertyAddress) return;
+
+    try {
+      setOceanVerifying(true);
+      const verified = await verifyOceanNFT(signer, propertyAddress);
+      setOceanVerified(verified);
+
+      if (verified) {
+        toast.success("Ocean Protocol NFT verified on-chain!");
+      } else {
+        toast.warning("Ocean Protocol NFT not found on-chain");
+      }
+    } catch (error: any) {
+      console.error("Failed to verify Ocean NFT:", error);
+      toast.error("Failed to verify NFT on-chain");
+      setOceanVerified(false);
+    } finally {
+      setOceanVerifying(false);
+    }
+  };
   const usdtAddress = summary?.usdt as `0x${string}` | undefined;
 
   async function load() {
@@ -214,7 +243,9 @@ export default function PropertyPage() {
       const result = await publishPropertyOnOcean(signer, propertyData);
 
       setOceanNftAddress(result.nftAddress);
+      setOceanDatatokenAddress(result.datatokenAddress);
       setOceanPublished(true);
+      setOceanVerified(true); // Just published, so it's verified
 
       toast.success(`Property published on Ocean Protocol! NFT: ${result.nftAddress.slice(0, 10)}...`);
     } catch (e: any) {
@@ -314,9 +345,13 @@ export default function PropertyPage() {
           {/* OCEAN PROTOCOL PUBLISHING — only when finalized */}
           {summary?.finalized && (
             <div className="mt-4 border rounded-2xl p-4 bg-gradient-to-r from-blue-50 to-cyan-50">
-              <div className="font-medium mb-2 flex items-center gap-2">🌊 Ocean Protocol Publishing</div>
+              <div className="font-medium mb-2 flex items-center gap-2">
+                🌊 Ocean Protocol Integration
+                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">REAL</span>
+              </div>
               <div className="text-sm text-gray-600 mb-3">
-                Publish this finalized property as an NFT on Ocean Protocol to enable data sharing and monetization.
+                Publish this finalized property as a real NFT on Ocean Protocol blockchain to enable secure data sharing
+                and monetization.
               </div>
 
               {!oceanPublished ? (
@@ -325,35 +360,103 @@ export default function PropertyPage() {
                   disabled={oceanPublishing}
                   className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
                 >
-                  {oceanPublishing ? "Publishing on Ocean..." : "🚀 Publish on Ocean Protocol"}
+                  {oceanPublishing ? "Creating NFT on Ocean Protocol..." : "🚀 Publish Real NFT on Ocean Protocol"}
                 </Button>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex items-center gap-2 text-green-600">
-                    ✅ Successfully published on Ocean Protocol!
+                    ✅ Successfully published on Ocean Protocol blockchain!
                   </div>
+
+                  {/* NFT Address */}
                   {oceanNftAddress && (
-                    <div className="text-sm">
-                      <span className="text-gray-600">NFT Address: </span>
-                      <span className="font-mono text-blue-600 break-all">{oceanNftAddress}</span>
+                    <div className="text-sm space-y-1">
+                      <div>
+                        <span className="text-gray-600">NFT Contract: </span>
+                        <a
+                          href={`https://arbiscan.io/address/${oceanNftAddress}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono text-blue-600 hover:text-blue-800 break-all underline"
+                        >
+                          {oceanNftAddress}
+                        </a>
+                      </div>
                     </div>
                   )}
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      oceanNftAddress &&
-                      window.open(`https://market.oceanprotocol.com/asset/${oceanNftAddress}`, "_blank")
-                    }
-                    disabled={!oceanNftAddress}
-                    className="text-sm"
-                  >
-                    View on Ocean Market
-                  </Button>
+
+                  {/* Datatoken Address */}
+                  {oceanDatatokenAddress && (
+                    <div className="text-sm">
+                      <span className="text-gray-600">Datatoken: </span>
+                      <a
+                        href={`https://arbiscan.io/address/${oceanDatatokenAddress}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-blue-600 hover:text-blue-800 break-all underline"
+                      >
+                        {oceanDatatokenAddress}
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Verification Status */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleVerifyOceanNFT}
+                      disabled={oceanVerifying || !signer}
+                      className="text-xs"
+                    >
+                      {oceanVerifying ? "Verifying..." : "🔍 Verify On-Chain"}
+                    </Button>
+
+                    {oceanVerified === true && (
+                      <span className="text-xs text-green-600 flex items-center gap-1">✅ Verified</span>
+                    )}
+                    {oceanVerified === false && (
+                      <span className="text-xs text-red-600 flex items-center gap-1">❌ Not found</span>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const marketUrl = getOceanMarketUrl(propertyAddress);
+                        if (marketUrl) window.open(marketUrl, "_blank");
+                      }}
+                      disabled={!oceanNftAddress}
+                      className="text-sm"
+                    >
+                      🌐 View on Ocean Market
+                    </Button>
+
+                    {oceanNftAddress && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`https://arbiscan.io/address/${oceanNftAddress}`, "_blank")}
+                        className="text-sm"
+                      >
+                        📊 View on Arbiscan
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
 
-              <div className="text-xs text-gray-500 mt-2">
-                Ocean Protocol enables secure data sharing and monetization through blockchain technology.
+              <div className="text-xs text-gray-500 mt-3">
+                <div className="font-medium mb-1">Real Ocean Protocol Features:</div>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Blockchain-verified NFT ownership</li>
+                  <li>Datatoken-based access control</li>
+                  <li>Decentralized data monetization</li>
+                  <li>Integration with Ocean Market</li>
+                </ul>
               </div>
             </div>
           )}
