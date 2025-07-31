@@ -1,13 +1,13 @@
 import { utils } from "ethers"; // v5
 import getBrickSafePropertyContract from "../abis/BrickSafeProperty";
-import getMockUSDTContract from "../abis/MockUSDT"; 
+import getMockUSDTContract from "../abis/MockUSDT";
 import { toast } from "react-toastify";
 
 const USDT_DECIMALS = 6;
 
 /** mici utilitare */
 const toUnits = (bn, decimals = USDT_DECIMALS) => utils.formatUnits(bn, decimals);
-const toWei   = (n, decimals = USDT_DECIMALS) => utils.parseUnits(String(n), decimals);
+const toWei = (n, decimals = USDT_DECIMALS) => utils.parseUnits(String(n), decimals);
 const pctFromBps = (bps) => Number(bps) / 100; // 10_000 bps = 100%
 
 /** decode data:application/json;base64,... din tokenURI (opțional în UI) */
@@ -24,18 +24,13 @@ function tryDecodeDataUri(uri) {
 }
 
 export default function frontendLibProperty() {
-
   // ---------------- READS ----------------
 
   /** Rezumatul proprietății: parametrii, starea de funding & income */
   async function getSummary(signerOrProvider, propertyAddress) {
     const p = getBrickSafePropertyContract(signerOrProvider, propertyAddress);
 
-    const [
-      usdt, price, propertyURI, seller,
-      raised, finalized, pendingIncome,
-      oceanDid, oceanDataNft,
-    ] = await Promise.all([
+    const [usdt, price, propertyURI, seller, raised, finalized, pendingIncome] = await Promise.all([
       p.usdt(),
       p.price(),
       p.propertyURI(),
@@ -43,8 +38,6 @@ export default function frontendLibProperty() {
       p.raised(),
       p.finalized(),
       p.pendingIncome(),
-      p.oceanDid(),
-      p.oceanDataNft(),
     ]);
 
     let totalShares = 0;
@@ -67,20 +60,17 @@ export default function frontendLibProperty() {
       finalized,
       pendingIncome,
       pendingIncomeFormatted: toUnits(pendingIncome),
-      oceanDid,
-      oceanDataNft,
       totalShares,
     };
   }
 
   // Check on-chain if the caller can distribute right now
-async function _canDistribute(signer, propertyAddress) {
-  const p = getBrickSafePropertyContract(signer, propertyAddress);
-  const me = await signer.getAddress();
-  const [finalized, bal] = await Promise.all([p.finalized(), p.balanceOf(me)]);
-  return Boolean(finalized && bal.gt(0));
-}
-
+  async function _canDistribute(signer, propertyAddress) {
+    const p = getBrickSafePropertyContract(signer, propertyAddress);
+    const me = await signer.getAddress();
+    const [finalized, bal] = await Promise.all([p.finalized(), p.balanceOf(me)]);
+    return Boolean(finalized && bal.gt(0));
+  }
 
   /** Listă cu toate share‑urile (NFT‑uri): tokenId, owner, bps, tokenURI (+ decode optional) */
   async function getShares(signerOrProvider, propertyAddress) {
@@ -94,11 +84,7 @@ async function _canDistribute(signer, propertyAddress) {
     for (let i = 0; i < n; i++) {
       // array public shareTokens -> index getter
       const tokenId = await p.shareTokens(i);
-      const [owner, bps, uri] = await Promise.all([
-        p.ownerOf(tokenId),
-        p.tokenShareBps(tokenId),
-        p.tokenURI(tokenId),
-      ]);
+      const [owner, bps, uri] = await Promise.all([p.ownerOf(tokenId), p.tokenShareBps(tokenId), p.tokenURI(tokenId)]);
       const meta = tryDecodeDataUri(uri);
       out.push({
         tokenId: tokenId.toNumber ? tokenId.toNumber() : Number(tokenId),
@@ -137,7 +123,7 @@ async function _canDistribute(signer, propertyAddress) {
   async function approveAndContribute(signer, propertyAddress, usdtAddress, amountWhole) {
     if (!signer) throw new Error("Signer required");
     const usdt = getMockUSDTContract(signer, usdtAddress);
-    const p    = getBrickSafePropertyContract(signer, propertyAddress);
+    const p = getBrickSafePropertyContract(signer, propertyAddress);
 
     const amount = toWei(amountWhole);
     const a = await usdt.approve(propertyAddress, amount);
@@ -158,14 +144,8 @@ async function _canDistribute(signer, propertyAddress) {
     toast?.success?.("Contribution successful");
     return { txHash: tx.hash, receipt: rc };
   }
- /** Approve mUSDT + depositIncome + (optional) distribute */
-  async function depositIncome(
-    signer,
-    propertyAddress,
-    usdtAddress,
-    rentWhole,
-    autoDistribute = false
-  ) {
+  /** Approve mUSDT + depositIncome + (optional) distribute */
+  async function depositIncome(signer, propertyAddress, usdtAddress, rentWhole, autoDistribute = false) {
     if (!signer) throw new Error("Signer required");
     const usdt = getMockUSDTContract(signer, usdtAddress);
     const p = getBrickSafePropertyContract(signer, propertyAddress);
@@ -239,23 +219,6 @@ async function _canDistribute(signer, propertyAddress) {
     return { txHash: tx.hash, receipt: rc };
   }
 
-  /** Link Ocean asset (doar shareholder) */
-  // async function linkOceanAsset(signer, propertyAddress, did, dataNftAddress) {
-  //   const p = getBrickSafePropertyContract(signer, propertyAddress);
-  //   const tx = await p.linkOceanAsset(did, dataNftAddress || "0x0000000000000000000000000000000000000000");
-  //   const rc = await tx.wait();
-  //   toast?.success?.("Ocean asset linked");
-  //   return { txHash: tx.hash, receipt: rc };
-  // }
-
-  // in frontendLibProperty()
-async function linkOceanAsset(signer, propertyAddress, did, dataNftAddress) {
-  const prop = getBrickSafePropertyContract(signer, propertyAddress);
-  const tx = await prop.linkOceanAsset(did, dataNftAddress);
-  await tx.wait();
-  return tx.hash;
-}
-
   // ---------------- EVENTS ----------------
   // toate folosesc ethers v5: numele evenimentului ca string
 
@@ -302,29 +265,27 @@ async function linkOceanAsset(signer, propertyAddress, did, dataNftAddress) {
     return () => p.off("DisplayNameSet", handler);
   }
 
-  function onOceanLinked(signerOrProvider, propertyAddress, cb) {
-    const p = getBrickSafePropertyContract(signerOrProvider, propertyAddress);
-    const handler = (did, dataNft, event) => cb({ did, dataNft, event });
-    p.on("OceanLinked", handler);
-    return () => p.off("OceanLinked", handler);
-  }
-
   // ---------------- ERROR HANDLING ----------------
 
   function errorHandling(error) {
-    const msg =
-      error?.error?.message
-        ? error.error.message
-        : error?.message
-        ? error.message.split("(")[0]
-        : String(error);
+    const msg = error?.error?.message
+      ? error.error.message
+      : error?.message
+      ? error.message.split("(")[0]
+      : String(error);
     toast?.error?.(msg);
     throw error;
   }
 
-  const safe = (fn) => async (...args) => {
-    try { return await fn(...args); } catch (e) { return errorHandling(e); }
-  };
+  const safe =
+    (fn) =>
+    async (...args) => {
+      try {
+        return await fn(...args);
+      } catch (e) {
+        return errorHandling(e);
+      }
+    };
 
   return {
     // reads
@@ -339,7 +300,6 @@ async function linkOceanAsset(signer, propertyAddress, did, dataNftAddress) {
     depositIncome: safe(depositIncome),
     distributeIncome: safe(distributeIncome),
     setDisplayName: safe(setDisplayName),
-    linkOceanAsset: safe(linkOceanAsset),
 
     // events
     onContributed,
@@ -348,7 +308,6 @@ async function linkOceanAsset(signer, propertyAddress, did, dataNftAddress) {
     onIncomeDistributed,
     onShareMinted,
     onDisplayNameSet,
-    onOceanLinked,
 
     // helpers
     toUnits,
@@ -356,3 +315,4 @@ async function linkOceanAsset(signer, propertyAddress, did, dataNftAddress) {
     pctFromBps,
   };
 }
+

@@ -10,14 +10,7 @@ export default defineConfig({
     alias: {
       src: "/src",
       // ⬇️ aliasăm importurile spre shim-ul local
-      "@oceanprotocol/ddo-js": "/src/shims/ddo-js.ts",
     },
   },
-  optimizeDeps: {
-    exclude: ["@oceanprotocol/lib", "@oceanprotocol/ddo-js"],
-    force: true,
-  },
-  build: {
-    commonjsOptions: { include: [/node_modules/] },
-  },
 });
+

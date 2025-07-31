@@ -4,16 +4,15 @@ import { Container, Typography } from "@mui/material";
 import { Button } from "src/components/ui/button";
 import { WalletContext } from "src/context/WalletProvider";
 import frontendLibProperty from "src/assets/libs/frontendLibProperty";
-import { createOceanProof } from "src/assets/libs/oceanProof";
 import { toast } from "react-toastify";
+import { ARB_CHAIN_ID } from "src/config/constants";
 
 const USDT_DECIMALS = 6;
 
 export default function PropertyPage() {
   const { address: addrParam } = useParams<{ address: `0x${string}` }>();
   const navigate = useNavigate();
-  const { signer, connectWallet, currentAddress, chainId, switchNetworkAsync } =
-    useContext(WalletContext);
+  const { signer, connectWallet, currentAddress, chainId, switchNetworkAsync } = useContext(WalletContext);
 
   const [summary, setSummary] = useState<any>(null);
   const [shares, setShares] = useState<any[]>([]);
@@ -25,12 +24,6 @@ export default function PropertyPage() {
 
   const [isSeller, setIsSeller] = useState(false);
   const [isShareholder, setIsShareholder] = useState(false);
-
-  // Ocean
-  const [oceanLoading, setOceanLoading] = useState(false);
-  const OCEAN_CHAIN_ID = Number(import.meta.env.REACT_APP_OCEAN_CHAIN_ID);
-  const ARB_CHAIN_ID =
-    Number(import.meta.env.REACT_APP_ARB_CHAIN_ID) || chainId;
 
   // New state for distribute loading
   const [distLoading, setDistLoading] = useState(false);
@@ -53,11 +46,7 @@ export default function PropertyPage() {
       setIsSeller(!!me && me === sellerAddr);
 
       if (currentAddress) {
-        const shFlag = await lib.isShareholder(
-          signer.provider,
-          propertyAddress,
-          currentAddress
-        );
+        const shFlag = await lib.isShareholder(signer.provider, propertyAddress, currentAddress);
         setIsShareholder(!!shFlag);
       } else {
         setIsShareholder(false);
@@ -72,16 +61,8 @@ export default function PropertyPage() {
 
     // subscribe to income events to auto-refresh
     if (signer?.provider && propertyAddress) {
-      const offDep = lib.onIncomeDeposited(
-        signer.provider,
-        propertyAddress,
-        () => load()
-      );
-      const offDist = lib.onIncomeDistributed(
-        signer.provider,
-        propertyAddress,
-        () => load()
-      );
+      const offDep = lib.onIncomeDeposited(signer.provider, propertyAddress, () => load());
+      const offDist = lib.onIncomeDistributed(signer.provider, propertyAddress, () => load());
       return () => {
         try {
           offDep?.();
@@ -111,12 +92,7 @@ export default function PropertyPage() {
       if (!usdtAddress) return;
 
       await ensureChain(ARB_CHAIN_ID);
-      await lib.approveAndContribute(
-        signer,
-        propertyAddress,
-        usdtAddress,
-        Number(contribAmount)
-      );
+      await lib.approveAndContribute(signer, propertyAddress, usdtAddress, Number(contribAmount));
       await load();
     } catch (e: any) {
       console.error(e);
@@ -135,13 +111,7 @@ export default function PropertyPage() {
       await ensureChain(ARB_CHAIN_ID);
 
       const autoDistribute = !!isShareholder; // only if caller is a shareholder
-      await lib.depositIncome(
-        signer,
-        propertyAddress,
-        usdtAddress,
-        Number(rentAmount),
-        autoDistribute
-      );
+      await lib.depositIncome(signer, propertyAddress, usdtAddress, Number(rentAmount), autoDistribute);
       await load();
     } catch (e: any) {
       console.error(e);
@@ -180,62 +150,12 @@ export default function PropertyPage() {
     }
   }
 
-  // ---------- Ocean proof ----------
-  async function doCreateOceanProof() {
-    try {
-      if (!signer) {
-        await connectWallet();
-        if (!signer) return;
-      }
-      if (!isShareholder) {
-        toast.error("Doar un shareholder poate crea dovada.");
-        return;
-      }
-      if (!OCEAN_CHAIN_ID) {
-        toast.error("VITE_OCEAN_CHAIN_ID lipsă în .env.local");
-        return;
-      }
-      setOceanLoading(true);
-      const prev = chainId;
-
-      // 1) Switch to Ocean chain
-      await ensureChain(OCEAN_CHAIN_ID);
-
-      // 2) Create proof on Ocean
-      const proof = {
-        propertyAddress,
-        contributor: currentAddress,
-        when: new Date().toISOString(),
-      };
-      const { did, dataNftAddress } = await createOceanProof({
-        ethersSigner: signer,
-        contributor: currentAddress!,
-        propertyAddress,
-        proofJson: proof,
-      });
-
-      // 3) Back to Arbitrum
-      await ensureChain(ARB_CHAIN_ID || prev!);
-
-      // 4) Link in property
-      await lib.linkOceanAsset(signer, propertyAddress, did, dataNftAddress);
-      toast.success("Ocean proof creat & link-uit cu succes");
-      await load();
-    } catch (e: any) {
-      console.error(e);
-      toast.error(e?.message ?? "Create Ocean proof failed");
-    } finally {
-      setOceanLoading(false);
-    }
-  }
-
-
-  
-
   return (
     <Container maxWidth="lg" className="py-6">
       <div className="flex items-center justify-between mb-4">
-        <Button variant="outline" onClick={() => navigate(-1)}>← Back</Button>
+        <Button variant="outline" onClick={() => navigate(-1)}>
+          ← Back
+        </Button>
         <Typography variant="h6">Property</Typography>
       </div>
 
@@ -257,21 +177,6 @@ export default function PropertyPage() {
               <div className="mt-2 text-xs text-gray-600">
                 Me isSeller: {String(isSeller)} · isShareholder: {String(isShareholder)}
               </div>
-
-              {/* Create Ocean Proof – only shareholder and if DID not set */}
-              {isShareholder && !summary?.oceanDid && (
-                <div className="mt-3">
-                  <Button onClick={doCreateOceanProof} disabled={oceanLoading}>
-                    {oceanLoading ? "Creating Ocean proof..." : "Create Ocean Proof"}
-                  </Button>
-                </div>
-              )}
-              {summary?.oceanDid && (
-                <div className="mt-2 text-xs text-gray-600 break-all">
-                  Ocean DID: {summary.oceanDid}<br />
-                  DataNFT: {summary.oceanDataNft}
-                </div>
-              )}
             </div>
           </div>
 
@@ -307,31 +212,29 @@ export default function PropertyPage() {
                   className="border rounded px-3 py-2 w-48"
                   placeholder="rent amount"
                 />
-                <Button onClick={doRentAndDistribute}>
-                  Deposit & Distribute
-                </Button>
+                <Button onClick={doRentAndDistribute}>Deposit & Distribute</Button>
               </div>
               {!isShareholder && (
                 <div className="text-xs text-amber-700 mt-2">
-                  You’re not a shareholder. Your deposit will be recorded as pending income.
-                  Any shareholder can later trigger the distribution.
+                  You’re not a shareholder. Your deposit will be recorded as pending income. Any shareholder can later
+                  trigger the distribution.
                 </div>
               )}
             </div>
           )}
 
           {/* DISTRIBUTE — only for shareholders */}
-         {isShareholder && summary?.finalized && (
-  <div className="mt-4 border rounded-2xl p-4">
-    <div className="font-medium mb-2">Distribute income</div>
-    <div className="text-sm text-gray-600 mb-3">
-      Pending income: <b>{summary.pendingIncomeFormatted}</b> mUSDT
-    </div>
-    <Button onClick={doDistribute} disabled={distLoading || summary.pendingIncomeFormatted === "0.0"}>
-      {distLoading ? "Distributing…" : "Distribute to shareholders"}
-    </Button>
-  </div>
-)}
+          {isShareholder && summary?.finalized && (
+            <div className="mt-4 border rounded-2xl p-4">
+              <div className="font-medium mb-2">Distribute income</div>
+              <div className="text-sm text-gray-600 mb-3">
+                Pending income: <b>{summary.pendingIncomeFormatted}</b> mUSDT
+              </div>
+              <Button onClick={doDistribute} disabled={distLoading || summary.pendingIncomeFormatted === "0.0"}>
+                {distLoading ? "Distributing…" : "Distribute to shareholders"}
+              </Button>
+            </div>
+          )}
 
           {/* SHARES */}
           <div className="mt-6">
@@ -347,7 +250,9 @@ export default function PropertyPage() {
                 <div key={s.tokenId} className="border rounded-xl p-3 text-sm">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div>token #{s.tokenId} — {s.percent}%</div>
+                      <div>
+                        token #{s.tokenId} — {s.percent}%
+                      </div>
                       <div className="break-all">owner: {s.owner}</div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -372,3 +277,4 @@ export default function PropertyPage() {
     </Container>
   );
 }
+
