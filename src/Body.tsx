@@ -5,6 +5,7 @@ import Default from "./layouts/Default";
 import Test from "./pages/Test/Test";
 import useDecimals from "./hooks/useDecimals";
 import useBalances from "./hooks/useBalances";
+import PropertyPage from "./pages/PropertyPage/PropertyPage";
 
 interface IProps {}
 
@@ -32,6 +33,7 @@ const Body: React.FC<IProps> = () => {
       <Route path="/" element={<Default />}>
         <Route path="/" element={<Home />} />
         <Route path="/test" element={<Test />} />
+        <Route path="/property/:address" element={<PropertyPage />} />
       </Route>
     </Routes>
   );
