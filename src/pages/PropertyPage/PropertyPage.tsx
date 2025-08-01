@@ -70,13 +70,13 @@ export default function PropertyPage() {
       setOceanVerified(verified);
 
       if (verified) {
-        toast.success("Cross-chain Ocean Protocol NFT verified on Sepolia!");
+        toast.success("Cross-chain Ocean Protocol NFT verified on Polygon!");
       } else {
-        toast.warning("Ocean Protocol NFT not found on Sepolia");
+        toast.warning("Ocean Protocol NFT not found on Polygon");
       }
     } catch (error: any) {
       console.error("Failed to verify cross-chain Ocean NFT:", error);
-      toast.error("Failed to verify NFT on Sepolia");
+      toast.error("Failed to verify NFT on Polygon");
       setOceanVerified(false);
     } finally {
       setOceanVerifying(false);
@@ -355,12 +355,13 @@ export default function PropertyPage() {
           {summary?.finalized && (
             <div className="mt-4 border rounded-2xl p-4 bg-gradient-to-r from-blue-50 to-cyan-50">
               <div className="font-medium mb-2 flex items-center gap-2">
-                🌊 Ocean Protocol Integration
-                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">REAL</span>
+                🌊 Ocean Protocol Cross-Chain Publishing
+                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">CROSS-CHAIN</span>
+                <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">POLYGON</span>
               </div>
               <div className="text-sm text-gray-600 mb-3">
-                Publish this finalized property as a real NFT on Ocean Protocol blockchain to enable secure data sharing
-                and monetization.
+                Publish this Arbitrum-based property as a real NFT on Ocean Protocol (Polygon network). This creates
+                cross-chain asset representation with low fees for secure data sharing and monetization.
               </div>
 
               {!oceanPublished ? (
@@ -370,22 +371,22 @@ export default function PropertyPage() {
                   className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
                 >
                   {oceanPublishing
-                    ? "Publishing Cross-Chain to Sepolia..."
+                    ? "Publishing Cross-Chain to Polygon..."
                     : "🌉 Publish Cross-Chain to Ocean Protocol"}
                 </Button>
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-green-600">
-                    ✅ Successfully published cross-chain to Ocean Protocol (Sepolia)!
+                    ✅ Successfully published cross-chain to Ocean Protocol (Polygon)!
                   </div>
 
                   {/* NFT Address */}
                   {oceanNftAddress && (
                     <div className="text-sm space-y-1">
                       <div>
-                        <span className="text-gray-600">NFT Contract (Sepolia): </span>
+                        <span className="text-gray-600">NFT Contract (Polygon): </span>
                         <a
-                          href={`https://sepolia.etherscan.io/address/${oceanNftAddress}`}
+                          href={`https://polygonscan.com/address/${oceanNftAddress}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="font-mono text-blue-600 hover:text-blue-800 break-all underline"
@@ -399,9 +400,9 @@ export default function PropertyPage() {
                   {/* Datatoken Address */}
                   {oceanDatatokenAddress && (
                     <div className="text-sm">
-                      <span className="text-gray-600">Datatoken (Sepolia): </span>
+                      <span className="text-gray-600">Datatoken (Polygon): </span>
                       <a
-                        href={`https://sepolia.etherscan.io/address/${oceanDatatokenAddress}`}
+                        href={`https://polygonscan.com/address/${oceanDatatokenAddress}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-mono text-blue-600 hover:text-blue-800 break-all underline"
@@ -420,7 +421,7 @@ export default function PropertyPage() {
                       disabled={oceanVerifying || !signer}
                       className="text-xs"
                     >
-                      {oceanVerifying ? "Verifying..." : "🔍 Verify on Sepolia"}
+                      {oceanVerifying ? "Verifying..." : "🔍 Verify on Polygon"}
                     </Button>
 
                     {oceanVerified === true && (
@@ -450,10 +451,10 @@ export default function PropertyPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.open(`https://sepolia.etherscan.io/address/${oceanNftAddress}`, "_blank")}
+                        onClick={() => window.open(`https://polygonscan.com/address/${oceanNftAddress}`, "_blank")}
                         className="text-sm"
                       >
-                        📊 View on Sepolia Etherscan
+                        📊 View on PolygonScan
                       </Button>
                     )}
                   </div>
@@ -463,7 +464,8 @@ export default function PropertyPage() {
               <div className="text-xs text-gray-500 mt-3">
                 <div className="font-medium mb-1">Cross-Chain Ocean Protocol Features:</div>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>Property on Arbitrum → NFT on Sepolia</li>
+                  <li>Property on Arbitrum → NFT on Polygon</li>
+                  <li>Low-cost Polygon transactions</li>
                   <li>Automatic network switching</li>
                   <li>Real Ocean Protocol contracts</li>
                   <li>Cross-chain data monetization</li>

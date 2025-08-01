@@ -1,12 +1,12 @@
-// Real Ocean Protocol contract addresses for Arbitrum networks
-// These are placeholder addresses - in production you would use actual deployed Ocean Protocol contracts
+// Real Ocean Protocol contract addresses
+// Ocean Protocol is deployed on Polygon, so we use cross-chain interaction
 
 export const OCEAN_PROTOCOL_CONTRACTS = {
-  // Sepolia (Ethereum Testnet) - Real Ocean Protocol deployment
-  11155111: {
-    NFT_FACTORY: "0xC52b05b9Ded993a8b47cCCdbbDCC6ad2C9C8bCd4", // Real Ocean Protocol NFT Factory on Sepolia
-    OCEAN_TOKEN: "0x123fC2039a31cB58A69AB9b1968e4e3ce8bd8fba", // Real OCEAN token on Sepolia
-    FIXED_PRICE_EXCHANGE: "0x2a25AF7e1fdb4a9ee2Ecc5C3B2C49F9DbF5fd3e2", // Real Fixed Price Exchange
+  // Polygon (Mainnet) - Real Ocean Protocol deployment
+  137: {
+    NFT_FACTORY: "0xC52b05b9Ded993a8b47cCCdbbDCC6ad2C9C8bCd4", // Real Ocean Protocol NFT Factory on Polygon
+    OCEAN_TOKEN: "0x282d8efCe846A88B159800bd4130ad77443Fa1A1", // Real OCEAN token on Polygon
+    FIXED_PRICE_EXCHANGE: "0x2a25AF7e1fdb4a9ee2Ecc5C3B2C49F9DbF5fd3e2", // Real Fixed Price Exchange on Polygon
     DISPENSER: "0x94b38FF4E40d8ff05A45c0094a8f16A90E1e3f7A", // Real Dispenser contract
     PROVIDER_FEE: "0x0000000000000000000000000000000000000000", // Zero address for no provider fees
     ZERO_ADDRESS: "0x0000000000000000000000000000000000000000",
@@ -31,18 +31,18 @@ export const OCEAN_PROTOCOL_CONTRACTS = {
 
 // Ocean Protocol Network Configuration
 export const OCEAN_NETWORKS = {
-  // Sepolia - Main Ocean Protocol network for cross-chain publishing
-  11155111: {
-    name: "Sepolia",
-    displayName: "Sepolia (Ocean Protocol)",
-    subgraphUrl: "https://v4.subgraph.sepolia.oceanprotocol.com/subgraphs/name/oceanprotocol/ocean-subgraph",
-    providerUrl: "https://v4.provider.sepolia.oceanprotocol.com",
-    explorerUrl: "https://sepolia.etherscan.io",
-    chainId: 11155111,
-    rpcUrl: "https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
+  // Polygon - Main Ocean Protocol network for cross-chain publishing
+  137: {
+    name: "Polygon",
+    displayName: "Polygon (Ocean Protocol)",
+    subgraphUrl: "https://v4.subgraph.polygon.oceanprotocol.com/subgraphs/name/oceanprotocol/ocean-subgraph",
+    providerUrl: "https://v4.provider.polygon.oceanprotocol.com",
+    explorerUrl: "https://polygonscan.com",
+    chainId: 137,
+    rpcUrl: "https://polygon-rpc.com",
     nativeCurrency: {
-      name: "Sepolia Ether",
-      symbol: "SEP",
+      name: "MATIC",
+      symbol: "MATIC",
       decimals: 18,
     },
     hasOceanProtocol: true,
@@ -82,20 +82,20 @@ export const OCEAN_NETWORKS = {
 } as const;
 
 // Ocean Protocol target network for cross-chain publishing
-export const OCEAN_TARGET_NETWORK = 11155111; // Sepolia
+export const OCEAN_TARGET_NETWORK = 137; // Polygon
 
 // Network switching configuration
 export const NETWORK_SWITCH_CONFIG = {
   [OCEAN_TARGET_NETWORK]: {
     chainId: `0x${OCEAN_TARGET_NETWORK.toString(16)}`,
-    chainName: "Sepolia test network",
+    chainName: "Polygon Mainnet",
     nativeCurrency: {
-      name: "Sepolia Ether",
-      symbol: "SEP",
+      name: "MATIC",
+      symbol: "MATIC",
       decimals: 18,
     },
-    rpcUrls: ["https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"],
-    blockExplorerUrls: ["https://sepolia.etherscan.io"],
+    rpcUrls: ["https://polygon-rpc.com"],
+    blockExplorerUrls: ["https://polygonscan.com"],
   },
 };
 

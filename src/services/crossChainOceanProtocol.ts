@@ -1,11 +1,7 @@
 import { Signer, Contract, utils } from "ethers";
 import { toast } from "react-toastify";
-import {
-  OCEAN_NFT_FACTORY_ABI,
-  OCEAN_DATA_NFT_ABI,
-  getOceanContracts,
-  getOceanNetwork,
-} from "../contracts/oceanProtocol";
+import { OCEAN_NFT_FACTORY_ABI, OCEAN_DATA_NFT_ABI } from "../contracts/oceanProtocol";
+import { OCEAN_PROTOCOL_CONTRACTS, OCEAN_NETWORKS } from "../config/constants/oceanProtocol";
 import {
   OCEAN_TARGET_NETWORK,
   NETWORK_SWITCH_CONFIG,
@@ -39,7 +35,7 @@ export interface OceanPublishResult {
  *
  * This service handles cross-chain interaction:
  * 1. BrickSafe properties exist on Arbitrum
- * 2. Ocean Protocol publishing happens on Sepolia
+ * 2. Ocean Protocol publishing happens on Polygon
  * 3. Automatic network switching and asset creation
  */
 class CrossChainOceanProtocolService {
@@ -54,7 +50,7 @@ class CrossChainOceanProtocolService {
   }
 
   /**
-   * Switch to Ocean Protocol network (Sepolia)
+   * Switch to Ocean Protocol network (Polygon)
    */
   async switchToOceanNetwork(): Promise<boolean> {
     try {
@@ -72,7 +68,7 @@ class CrossChainOceanProtocolService {
           params: [{ chainId: switchConfig.chainId }],
         });
 
-        toast.success("Switched to Sepolia for Ocean Protocol publishing");
+        toast.success("Switched to Polygon for Ocean Protocol publishing");
         return true;
       } catch (switchError: any) {
         // If network doesn't exist, add it
@@ -83,17 +79,17 @@ class CrossChainOceanProtocolService {
               params: [switchConfig],
             });
 
-            toast.success("Added and switched to Sepolia network");
+            toast.success("Added and switched to Polygon network");
             return true;
           } catch (addError) {
-            throw new Error("Failed to add Sepolia network to wallet");
+            throw new Error("Failed to add Polygon network to wallet");
           }
         }
         throw switchError;
       }
     } catch (error: any) {
       console.error("Failed to switch network:", error);
-      toast.error(error?.message || "Failed to switch to Sepolia network");
+      toast.error(error?.message || "Failed to switch to Polygon network");
       return false;
     }
   }
@@ -157,7 +153,7 @@ class CrossChainOceanProtocolService {
           totalRaised: `${propertyData.raised} USDT`,
           totalShares: propertyData.totalShares,
           platform: "BrickSafe",
-          publishingNetwork: "Sepolia",
+          publishingNetwork: "Polygon",
           crossChain: true,
           ...propertyData.metadata,
         },
@@ -175,7 +171,7 @@ class CrossChainOceanProtocolService {
           ],
           datatokenAddress,
           serviceEndpoint:
-            getOceanNetwork(OCEAN_TARGET_NETWORK)?.providerUrl || "https://v4.provider.sepolia.oceanprotocol.com",
+            OCEAN_NETWORKS[OCEAN_TARGET_NETWORK]?.providerUrl || "https://v4.provider.polygon.oceanprotocol.com",
           timeout: 86400,
         },
       ],
@@ -205,7 +201,7 @@ class CrossChainOceanProtocolService {
       const isOnOceanNetwork = await this.isOnOceanNetwork(signer);
 
       if (!isOnOceanNetwork) {
-        toast.info("Switching to Sepolia network for Ocean Protocol publishing...");
+        toast.info("Switching to Polygon network for Ocean Protocol publishing...");
         const switched = await this.switchToOceanNetwork();
         if (!switched) {
           throw new Error("Network switch required for Ocean Protocol publishing");
@@ -216,10 +212,10 @@ class CrossChainOceanProtocolService {
       }
 
       const publisherAccount = await signer.getAddress();
-      const contracts = getOceanContracts(OCEAN_TARGET_NETWORK);
+      const contracts = OCEAN_PROTOCOL_CONTRACTS[OCEAN_TARGET_NETWORK];
 
       if (!contracts) {
-        throw new Error("Ocean Protocol contracts not available on Sepolia");
+        throw new Error("Ocean Protocol contracts not available on Polygon");
       }
 
       console.log("Creating cross-chain Ocean Protocol NFT...", {
@@ -229,8 +225,12 @@ class CrossChainOceanProtocolService {
         publisher: publisherAccount,
       });
 
-      // Create NFT Factory contract instance on Sepolia
-      const nftFactory = new Contract(contracts.NFT_FACTORY, OCEAN_NFT_FACTORY_ABI, signer);
+      // Ensure proper address checksumming to prevent bad checksum errors
+      const checksummedFactoryAddress = utils.getAddress(contracts.NFT_FACTORY);
+      console.log("Using checksummed NFT Factory address:", checksummedFactoryAddress);
+
+      // Create NFT Factory contract instance on Polygon
+      const nftFactory = new Contract(checksummedFactoryAddress, OCEAN_NFT_FACTORY_ABI, signer);
 
       // Prepare NFT metadata with cross-chain information
       const nftMetadata = {
@@ -240,8 +240,11 @@ class CrossChainOceanProtocolService {
         external_url: `https://bricksafe.io/property/${propertyData.propertyAddress}`,
         attributes: [
           { trait_type: "Property Address", value: propertyData.propertyAddress },
-          { trait_type: "Original Chain", value: this.originalChainId === 42161 ? "Arbitrum One" : "Arbitrum Sepolia" },
-          { trait_type: "Ocean Protocol Chain", value: "Sepolia" },
+          {
+            trait_type: "Original Chain",
+            value: this.originalChainId === 42161 ? "Arbitrum One" : "Arbitrum Sepolia",
+          },
+          { trait_type: "Ocean Protocol Chain", value: "Polygon" },
           { trait_type: "Cross-Chain Asset", value: "true" },
           { trait_type: "Seller", value: propertyData.seller },
           { trait_type: "Original Price", value: `${propertyData.price} USDT` },
@@ -254,8 +257,8 @@ class CrossChainOceanProtocolService {
       // Upload NFT metadata
       const nftTokenURI = await this.uploadMetadataToIPFS(nftMetadata);
 
-      // Step 1: Create NFT on Sepolia
-      toast.info("Creating NFT on Ocean Protocol (Sepolia)...");
+      // Step 1: Create NFT on Polygon
+      toast.info("Creating NFT on Ocean Protocol (Polygon)...");
       const createNFTTx = await nftFactory.createNFT(
         `BrickSafe Cross-Chain Property NFT`,
         "BSXCHAIN",
@@ -289,8 +292,8 @@ class CrossChainOceanProtocolService {
         symbol: "BSXDT",
         minter: publisherAccount,
         feeManager: publisherAccount,
-        publishMarketOrderFeeAddress: contracts.PROVIDER_FEE,
-        publishMarketOrderFeeToken: contracts.ZERO_ADDRESS,
+        publishMarketOrderFeeAddress: utils.getAddress(contracts.PROVIDER_FEE),
+        publishMarketOrderFeeToken: utils.getAddress(contracts.ZERO_ADDRESS),
         publishMarketOrderFeeAmount: "0",
         bytess: "0x",
       };
@@ -364,18 +367,19 @@ class CrossChainOceanProtocolService {
   }
 
   /**
-   * Verify NFT exists on Sepolia
+   * Verify NFT exists on Polygon
    */
   async verifyNFTOnChain(signer: Signer, nftAddress: string, tokenId: number = 1): Promise<boolean> {
     try {
-      // Ensure we're on Sepolia for verification
+      // Ensure we're on Polygon for verification
       const network = await signer.provider?.getNetwork();
       if (network?.chainId !== OCEAN_TARGET_NETWORK) {
         await this.switchToOceanNetwork();
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
-      const nftContract = new Contract(nftAddress, OCEAN_DATA_NFT_ABI, signer);
+      const checksummedNftAddress = utils.getAddress(nftAddress);
+      const nftContract = new Contract(checksummedNftAddress, OCEAN_DATA_NFT_ABI, signer);
       const tokenURI = await nftContract.tokenURI(tokenId);
       return !!tokenURI;
     } catch (error) {
@@ -451,3 +455,4 @@ export function getCrossChainOceanMarketUrl(propertyAddress: string): string | n
 export async function switchBackToOriginalNetwork(): Promise<void> {
   await crossChainOceanProtocolService.switchBackToOriginalNetwork();
 }
+
