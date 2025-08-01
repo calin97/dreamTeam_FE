@@ -11,69 +11,92 @@ const Home: React.FC = () => {
   const { connectWallet, currentAddress, displayAccount } = useContext(WalletContext);
 
   return (
-    <div className="space-y-8">
-      <Container maxWidth="xl" className="px-4 sm:px-6 lg:px-8">
-        {/* Header Section */}
-        <section className="py-8">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent mb-4">
-              BrickSafe Platform
-            </h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Create and manage real estate investment opportunities with blockchain technology
-            </p>
-          </div>
+    <div className="min-h-screen flex flex-col">
+      <Container maxWidth="xl" className="flex-1 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto space-y-12">
+          {/* Header Section */}
+          <section className="py-12 text-center">
+            <div className="max-w-4xl mx-auto mb-12">
+              <h1 className="text-5xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent mb-6">
+                BrickSafe Platform
+              </h1>
+              <p className="text-xl text-gray-600 leading-relaxed">
+                Create and manage real estate investment opportunities with blockchain technology
+              </p>
+            </div>
 
-          {/* Wallet Connection */}
-          <Card className="max-w-lg mx-auto mb-8">
-            <CardContent className="flex items-center justify-between p-6">
-              <div className="flex items-center space-x-3">
-                <div className={`w-3 h-3 rounded-full ${currentAddress ? "bg-green-500" : "bg-gray-400"}`}></div>
-                <span className="text-sm font-medium text-gray-700">
-                  {currentAddress ? "Wallet Connected" : "Wallet Disconnected"}
+            {/* Wallet Connection */}
+            <div className="flex justify-center">
+              <Card className="w-full max-w-2xl">
+                <CardContent className="flex items-center justify-between p-8">
+                  <div className="flex items-center space-x-4">
+                    <div className={`w-4 h-4 rounded-full ${currentAddress ? "bg-green-500" : "bg-gray-400"}`}></div>
+                    <span className="text-base font-medium text-gray-700">
+                      {currentAddress ? "Wallet Connected" : "Wallet Disconnected"}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <Button
+                      onClick={connectWallet}
+                      variant={currentAddress ? "outline" : "default"}
+                      size="lg"
+                      className={
+                        currentAddress
+                          ? "border-green-200 text-green-700 hover:bg-green-50"
+                          : "bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
+                      }
+                    >
+                      {currentAddress ? `${displayAccount}` : "Connect Wallet"}
+                    </Button>
+                    <Badge className="bg-gradient-to-r from-red-500 to-orange-500 text-white text-sm px-3 py-1">
+                      Demo
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+
+          {/* Create Property Section */}
+          <section className="py-12">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Create New Property</h2>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Launch your real estate investment opportunity and start building your portfolio
+              </p>
+            </div>
+            <div className="flex justify-center">
+              <CreatePropertyForm />
+            </div>
+          </section>
+
+          {/* Divider */}
+          <div className="py-12">
+            <div className="relative max-w-4xl mx-auto">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t-2 border-gradient-to-r from-orange-200 to-red-200"></div>
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-white px-8 py-3 text-lg font-semibold text-gray-600 rounded-full border-2 border-gray-200 shadow-sm">
+                  Available Properties
                 </span>
               </div>
-              <div className="flex items-center space-x-3">
-                <Button
-                  onClick={connectWallet}
-                  variant={currentAddress ? "outline" : "default"}
-                  className={
-                    currentAddress
-                      ? "border-green-200 text-green-700 hover:bg-green-50"
-                      : "bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
-                  }
-                >
-                  {currentAddress ? `${displayAccount}` : "Connect Wallet"}
-                </Button>
-                <Badge className="bg-gradient-to-r from-red-500 to-orange-500 text-white">Demo</Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Create Property Section */}
-        <section className="py-8">
-          <CreatePropertyForm />
-        </section>
-
-        {/* Divider */}
-        <div className="py-8">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gradient-to-r from-orange-200 to-red-200"></div>
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-white px-6 py-2 text-sm font-medium text-gray-500 rounded-full border border-gray-200">
-                Available Properties
-              </span>
             </div>
           </div>
-        </div>
 
-        {/* Property List Section */}
-        <section className="py-8">
-          <PropertyList />
-        </section>
+          {/* Property List Section */}
+          <section className="py-12">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Property Portfolio</h2>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Browse and invest in available real estate opportunities
+              </p>
+            </div>
+            <div className="flex justify-center">
+              <PropertyList />
+            </div>
+          </section>
+        </div>
       </Container>
     </div>
   );

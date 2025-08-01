@@ -114,7 +114,7 @@ export default function PropertyList() {
 
       {/* Loading State */}
       {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="overflow-hidden">
               <Skeleton variant="rectangular" height={200} />
@@ -154,7 +154,7 @@ export default function PropertyList() {
 
       {/* Properties Grid */}
       {!loading && items.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
           {items.map((property) => (
             <Card
               key={`${property.address}-${property.id}`}
@@ -176,12 +176,12 @@ export default function PropertyList() {
               </div>
 
               {/* Property Details */}
-              <CardContent className="p-6">
-                <div className="space-y-6">
+              <CardContent className="p-8">
+                <div className="space-y-8">
                   {/* Address */}
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-orange-100 to-red-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-r from-orange-100 to-red-100 rounded-xl flex items-center justify-center">
+                      <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -197,15 +197,15 @@ export default function PropertyList() {
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Contract Address</p>
-                      <p className="text-sm font-mono text-gray-900 break-all">{property.address}</p>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Contract Address</p>
+                      <p className="text-sm font-mono text-gray-900 break-all leading-relaxed">{property.address}</p>
                     </div>
                   </div>
 
                   {/* Lister */}
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-red-100 to-orange-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-r from-red-100 to-orange-100 rounded-xl flex items-center justify-center">
+                      <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -215,42 +215,44 @@ export default function PropertyList() {
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Property Lister</p>
-                      <p className="text-sm font-mono text-gray-900 break-all">{property.lister}</p>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Property Lister</p>
+                      <p className="text-sm font-mono text-gray-900 break-all leading-relaxed">{property.lister}</p>
                     </div>
                   </div>
 
                   {/* Price */}
                   <Card className="bg-gradient-to-r from-orange-50 to-red-50 border-orange-200">
-                    <CardContent className="flex items-center justify-between p-4">
+                    <CardContent className="flex items-center justify-between p-6">
                       <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
                           Investment Price
                         </p>
-                        <p className="text-2xl font-bold text-gray-900">
+                        <p className="text-3xl font-bold text-gray-900">
                           ${formatUnits(property.price, USDT_DECIMALS)}
                         </p>
                       </div>
-                      <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white">USDT</Badge>
+                      <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-sm px-4 py-2">
+                        USDT
+                      </Badge>
                     </CardContent>
                   </Card>
 
                   {/* URI */}
                   {property.uri && (
-                    <div className="pt-4 border-t border-gray-100">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Metadata URI</p>
-                      <Badge variant="secondary" className="text-xs font-mono break-all">
+                    <div className="pt-6 border-t border-gray-100">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-4">Metadata URI</p>
+                      <Badge variant="secondary" className="text-xs font-mono break-all px-3 py-2">
                         {property.uri}
                       </Badge>
                     </div>
                   )}
 
                   {/* View Button */}
-                  <div className="pt-4">
-                    <Button className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-2 border-white hover:border-yellow-300 font-medium py-3 transition-all duration-300 group-hover:shadow-lg">
+                  <div className="pt-6">
+                    <Button className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-2 border-white hover:border-yellow-300 font-medium py-4 text-base transition-all duration-300 group-hover:shadow-lg">
                       <span className="mr-2">View Details</span>
                       <svg
-                        className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
+                        className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
