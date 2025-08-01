@@ -59,7 +59,7 @@ export default function PropertyList() {
   }, [readProvider, factoryAddress]);
 
   return (
-    <div className="w-full max-w-7xl mx-auto">
+    <div className="flex flex-col gap-3">
       {/* Header */}
       <div className="mb-12">
         <Card className="border-0 shadow-2xl bg-gradient-to-r from-orange-500 to-red-500">
@@ -114,9 +114,12 @@ export default function PropertyList() {
 
       {/* Loading State */}
       {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+        <div className="flex flex-wrap gap-8">
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="overflow-hidden">
+            <Card
+              key={i}
+              className="flex-1 min-w-0 basis-full md:basis-[calc(50%-1rem)] lg:basis-[calc(33.333%-1.333rem)] overflow-hidden"
+            >
               <Skeleton variant="rectangular" height={200} />
               <CardContent className="p-6 space-y-4">
                 <Skeleton variant="text" height={24} width="60%" />
@@ -154,11 +157,11 @@ export default function PropertyList() {
 
       {/* Properties Grid */}
       {!loading && items.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+        <div className="flex flex-wrap gap-8 bg-gray-50 p-6 rounded-2xl">
           {items.map((property) => (
             <Card
               key={`${property.address}-${property.id}`}
-              className="group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]"
+              className="flex-1 min-w-0 basis-full md:basis-[calc(50%-1rem)] lg:basis-[calc(33.333%-1.333rem)] group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]"
               onClick={() => navigate(`/property/${property.address}`)}
             >
               {/* Property Card Header */}

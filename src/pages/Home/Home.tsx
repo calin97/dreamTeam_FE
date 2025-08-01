@@ -11,9 +11,9 @@ const Home: React.FC = () => {
   const { connectWallet, currentAddress, displayAccount } = useContext(WalletContext);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col m-1.5">
       <Container maxWidth="xl" className="flex-1 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto space-y-12">
+        <div className="w-full max-w-7xl mx-auto m-[5px] space-y-12">
           {/* Header Section */}
           <section className="py-12 text-center">
             <div className="max-w-4xl mx-auto mb-12">
