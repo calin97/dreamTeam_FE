@@ -94,9 +94,17 @@ export default function PropertyPage() {
     setLoading(true);
     try {
       const s = await lib.getSummary(signer.provider, propertyAddress);
-      const sh = await lib.getShares(signer.provider, propertyAddress);
+      const rawShares = await lib.getShares(signer.provider, propertyAddress);
+      const formattedShares = rawShares.map((s: any) => ({
+        holder: s.owner,
+        sharesFormatted: `${Number(s.bps) / 100} %`,
+        displayName: s.displayName ?? "",
+        tokenId: s.tokenId,
+        percent: s.percent,
+      }));
+      setShares(formattedShares);
       setSummary(s);
-      setShares(sh);
+      console.log("SHARES", formattedShares);
 
       const sellerAddr = (s.seller || "").toLowerCase();
       const me = (currentAddress || "").toLowerCase();
@@ -423,9 +431,7 @@ export default function PropertyPage() {
                         className="flex-1"
                         placeholder="Amount (whole units)"
                       />
-                      <Button onClick={doContribute} className="bg-green-600 hover:bg-green-700">
-                        Approve & Contribute
-                      </Button>
+                      <Button onClick={doContribute}>Approve & Contribute</Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -449,9 +455,7 @@ export default function PropertyPage() {
                         className="flex-1"
                         placeholder="Rent amount"
                       />
-                      <Button onClick={doRentAndDistribute} className="bg-blue-600 hover:bg-blue-700">
-                        Deposit & Distribute
-                      </Button>
+                      <Button onClick={doRentAndDistribute}>Deposit</Button>
                     </div>
                     {!isShareholder && (
                       <div className="text-sm text-amber-700 bg-amber-100 p-3 rounded-lg">
@@ -473,11 +477,7 @@ export default function PropertyPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="px-0 pb-0">
-                    <Button
-                      onClick={doDistribute}
-                      disabled={distLoading || summary.pendingIncomeFormatted === "0.0"}
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
+                    <Button onClick={doDistribute} disabled={distLoading || summary.pendingIncomeFormatted === "0.0"}>
                       {distLoading ? "Distributing…" : "Distribute to shareholders"}
                     </Button>
                   </CardContent>
